@@ -4,7 +4,7 @@ AI code review on every pull request: comments on the exact changed lines, a sho
 
 ![A review: summary, severity filters, and comments under the lines they refer to](docs/screenshots/01-review-summary.png)
 
-**See it on a real pull request:** [codeitronics/ai-pr-reviewer-demo#1](https://github.com/codeitronics/ai-pr-reviewer-demo/pull/1) · **Try the web UI:** [demos.codeitronics.com/pr-review](https://demos.codeitronics.com/pr-review/)
+**See it on a real pull request:** [codeitronics/ai-pr-reviewer-demo#2](https://github.com/codeitronics/ai-pr-reviewer-demo/pull/2) · **Try the web UI:** [demos.codeitronics.com/pr-review](https://demos.codeitronics.com/pr-review/)
 
 On that demo PR (an orders API with five deliberate mistakes), the reviewer flagged all five on the right lines: an injectable SQL query, an off-by-one in pagination, a missing `await`, an unvalidated discount on a possibly missing order, and an API key written to the logs. It also raised three real issues we hadn't planted, and suggested five tests.
 

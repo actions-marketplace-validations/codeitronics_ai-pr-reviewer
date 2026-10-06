@@ -675,7 +675,7 @@ init_api();
 import fs2 from "node:fs/promises";
 import { Command, Option } from "commander";
 import pc2 from "picocolors";
-var VERSION = "1.0.1";
+var VERSION = "1.0.2";
 var ICON2 = { critical: pc2.red("\u25CF critical"), warning: pc2.yellow("\u25CF warning "), info: pc2.blue("\u25CF info    ") };
 async function run(argv) {
   const program = new Command().name("ai-pr-reviewer").description("AI code review for pull requests: CLI, GitHub Action and web UI.").version(VERSION);

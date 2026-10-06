@@ -51,10 +51,8 @@ export async function run(env = process.env): Promise<void> {
   const posted = await gh.postReview(pr, review);
   const critical = review.comments.filter((c) => c.severity === "critical").length;
   console.log(`Posted ${review.comments.length} comment(s) (${critical} critical)${posted.inline ? "" : " as a summary (GitHub rejected inline placement)"}: ${posted.url}`);
-  for (const c of review.comments) {
-    const level = c.severity === "critical" ? "error" : c.severity === "warning" ? "warning" : "notice";
-    console.log(`::${level} file=${c.path},line=${c.line},title=${escape(c.title)}::${escape(c.body)}`);
-  }
+  // Plain log lines only: workflow annotations would duplicate the review comments and show as "Check failure".
+  for (const c of review.comments) console.log(`  ${c.severity.padEnd(8)} ${c.path}:${c.line}  ${c.title}`);
   setOutput("comments", String(review.comments.length));
   setOutput("critical", String(critical));
   setOutput("verdict", review.verdict);

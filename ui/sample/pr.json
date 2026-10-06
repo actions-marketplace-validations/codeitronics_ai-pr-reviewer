@@ -1,10 +1,10 @@
 {
   "owner": "codeitronics",
   "repo": "ai-pr-reviewer-demo",
-  "number": 1,
+  "number": 2,
   "title": "Add order search, discounts and an admin export",
   "author": "avnishyadav25",
-  "url": "https://github.com/codeitronics/ai-pr-reviewer-demo/pull/1",
+  "url": "https://github.com/codeitronics/ai-pr-reviewer-demo/pull/2",
   "state": "open",
   "additions": 29,
   "deletions": 1,
