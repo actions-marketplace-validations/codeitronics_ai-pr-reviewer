@@ -1,0 +1,29 @@
+<div class="head"><div><p class="kicker">History</p><h1>Reviews posted on GitHub</h1></div></div>
+<form method="get" action="{{root}}/history" class="repos">
+  <label>Repositories <input type="text" name="repos" value="{{repos}}" placeholder="owner/repo, owner/other" autocomplete="off" spellcheck="false"></label>
+  <button class="btn">Load</button>
+</form>
+<p class="note">Read live from GitHub: every review the action posts carries a hidden marker. {{#unless token}}Without a GITHUB_TOKEN only public repositories are listed (and GitHub allows 60 requests an hour).{{/unless}} Refreshed every 10 minutes.</p>
+{{#if error}}<div class="error"><strong>Couldn't load history.</strong><pre>{{error}}</pre></div>{{/if}}
+<div class="figures">
+  <div><span class="fig">{{stats.reviews}}</span><span>reviews</span></div>
+  <div><span class="fig">{{stats.prs}}</span><span>pull requests</span></div>
+  <div><span class="fig">{{stats.comments}}</span><span>comments</span></div>
+  <div><span class="fig">{{stats.critical}}</span><span>critical findings</span></div>
+  <div><span class="fig">{{stats.blocked}}</span><span>changes requested</span></div>
+</div>
+{{#if items.length}}
+<table class="table">
+  <thead><tr><th>Pull request</th><th>Findings</th><th>Verdict</th><th>Reviewed</th></tr></thead>
+  <tbody>
+  {{#each items}}
+  <tr>
+    <td><a href="{{url}}" target="_blank" rel="noopener"><strong>{{title}}</strong></a><br><span class="muted">{{repo}} #{{number}} · {{author}} · {{prState}}</span></td>
+    <td class="nowrap"><span class="dot critical"></span> {{critical}} <span class="dot warning"></span> {{warning}} <span class="dot info"></span> {{info}}</td>
+    <td>{{#if (eq verdict "request_changes")}}<span class="verdict-tag request_changes">changes requested</span>{{else}}<span class="verdict-tag">comment</span>{{/if}}</td>
+    <td class="muted nowrap">{{ago at}}</td>
+  </tr>
+  {{/each}}
+  </tbody>
+</table>
+{{else}}{{#unless error}}<p class="empty">No reviews found yet for these repositories.</p>{{/unless}}{{/if}}

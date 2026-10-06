@@ -1,0 +1,58 @@
+{{#if isSample}}<p class="note sample-note">Recorded review of <a href="{{pr.url}}" target="_blank" rel="noopener">{{pr.owner}}/{{pr.repo}}#{{pr.number}}</a>, a demo pull request with deliberate mistakes, reviewed by {{review.model.provider}} ({{review.model.model}}).</p>{{/if}}
+<div class="pr-head">
+  <div>
+    {{#if pr}}<p class="kicker"><a href="{{pr.url}}" target="_blank" rel="noopener">{{pr.owner}}/{{pr.repo}} #{{pr.number}}</a> · by {{pr.author}} · +{{pr.additions}} −{{pr.deletions}} in {{pr.changedFiles}} file(s)</p><h1>{{pr.title}}</h1>{{else}}<p class="kicker">Diff review</p><h1>Review</h1>{{/if}}
+  </div>
+  <div class="verdict {{review.verdict}}">{{#if (eq review.verdict "request_changes")}}Changes requested{{else}}Comment{{/if}}</div>
+</div>
+
+<section class="summary">
+  <p class="lead">{{review.summary}}</p>
+  <div class="chips" role="group" aria-label="Filter by severity">
+    <button type="button" class="chip on" data-sev="critical"><span class="dot critical"></span>{{vm.counts.critical}} critical</button>
+    <button type="button" class="chip on" data-sev="warning"><span class="dot warning"></span>{{vm.counts.warning}} warning</button>
+    <button type="button" class="chip on" data-sev="info"><span class="dot info"></span>{{vm.counts.info}} info</button>
+  </div>
+  {{#if canPost}}
+  <form method="post" action="{{root}}/r/{{id}}/post" class="post" data-busy>
+    <button class="btn btn-primary">Post review to GitHub</button><span class="busy">Posting…</span>
+  </form>
+  {{/if}}
+  {{#if posted}}<p class="note ok">Posted: <a href="{{posted.url}}" target="_blank" rel="noopener">{{posted.url}}</a>{{#unless posted.inline}} (as a summary: GitHub rejected inline placement){{/unless}}</p>{{/if}}
+  {{#if postError}}<div class="error"><strong>Couldn't post.</strong><pre>{{postError}}</pre></div>{{/if}}
+</section>
+
+<div class="result">
+  <div class="files">
+    {{#each vm.files}}
+    <details class="file" open>
+      <summary><code>{{path}}</code> <span class="muted">{{status}}{{#if count}} · {{count}} comment{{#unless (eq count 1)}}s{{/unless}}{{/if}}</span></summary>
+      <table class="diff">
+        <colgroup><col class="ln-col"><col class="ln-col"><col></colgroup>
+        {{#each rows}}
+        {{#if (eq kind "hunk")}}<tr class="hunk"><td colspan="3">{{text}}</td></tr>
+        {{else}}
+        <tr class="{{kind}}"><td class="ln">{{oldLine}}</td><td class="ln">{{newLine}}</td><td class="code"><span class="mark">{{#if (eq kind "add")}}+{{else}}{{#if (eq kind "del")}}−{{else}}&nbsp;{{/if}}{{/if}}</span>{{text}}</td></tr>
+        {{#each comments}}
+        <tr class="comment-row" data-sev="{{severity}}"><td colspan="3">{{> comment this}}</td></tr>
+        {{/each}}
+        {{/if}}
+        {{/each}}
+      </table>
+    </details>
+    {{/each}}
+  </div>
+  <aside class="side">
+    {{#if review.tests.length}}
+    <h2>Tests worth adding</h2>
+    <ol class="tests">{{#each review.tests}}<li><strong>{{name}}</strong>{{#if path}} <code>{{path}}</code>{{/if}}<br><span class="muted">{{why}}</span></li>{{/each}}</ol>
+    {{/if}}
+    {{#if review.unplaced.length}}
+    <h2>Other findings</h2>
+    <ul class="unplaced">{{#each review.unplaced}}<li data-sev="{{severity}}"><span class="dot {{severity}}"></span> <strong>{{title}}</strong> <code>{{path}}</code><br><span class="muted">{{body}}</span></li>{{/each}}</ul>
+    {{/if}}
+    <h2>Scope</h2>
+    <p class="muted small">Reviewed {{review.stats.reviewedFiles}} of {{review.stats.files}} file(s).{{#each review.stats.skipped}} {{path}} ({{reason}}).{{/each}}</p>
+    <p class="muted small">Model: {{review.model.provider}} · {{review.model.model}}</p>
+  </aside>
+</div>

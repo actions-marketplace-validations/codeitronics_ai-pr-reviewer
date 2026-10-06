@@ -1,24 +1,68 @@
-name: 'AI PR Reviewer'
-description: 'Automated agent for code review, suggestions, test generation.'
-author: 'Avnish Yadav'
-inputs:
-  openai_key:
-    description: 'OpenAI API Key'
-    required: true
-  github_token:
-    description: 'GitHub Token'
-    required: true
-  model:
-    description: 'OpenAI Model'
-    required: false
-    default: 'gpt-4o'
-  include_severity:
-    description: 'Filter for comment severity (comma separated: info, warning, critical)'
-    required: false
-    default: 'info,warning,critical'
-runs:
-  using: 'node20'
-  main: 'dist/index.js'
+name: "AI PR Reviewer by CodeITronics"
+description: "AI code review on every pull request: inline comments on real diff lines, a summary, and the tests worth adding."
+author: "CodeITronics"
 branding:
-  icon: 'cpu'
-  color: 'purple'
+  icon: "eye"
+  color: "purple"
+
+inputs:
+  api_key:
+    description: "API key for the AI provider. Store it as a repository secret, e.g. secrets.DEEPSEEK_API_KEY."
+    required: true
+  provider:
+    description: "deepseek (default), anthropic, openai or gemini."
+    required: false
+    default: "deepseek"
+  model:
+    description: "Model override. Defaults: deepseek-chat, claude-sonnet-5-5, gpt-5-mini, gemini-2.5-flash."
+    required: false
+  github_token:
+    description: "Token used to read the diff and post the review."
+    required: false
+    default: ${{ github.token }}
+  include_severity:
+    description: "Severities to post, comma separated: info, warning, critical."
+    required: false
+    default: "info,warning,critical"
+  request_changes_on:
+    description: "Submit the review as 'changes requested' when a finding is at or above this severity: never, info, warning or critical."
+    required: false
+    default: "never"
+  fail_on_critical:
+    description: "Fail the workflow step when a critical finding is posted."
+    required: false
+    default: "false"
+  ignore:
+    description: "Extra glob patterns to skip (comma or newline separated). Lockfiles, build output and minified files are skipped already."
+    required: false
+    default: ""
+  instructions_file:
+    description: "Optional project guidance for the reviewer (read from the PR's head commit)."
+    required: false
+    default: ".github/ai-review.md"
+  max_diff_chars:
+    description: "Character budget for the diff sent to the model; files beyond it are listed as skipped."
+    required: false
+    default: "60000"
+  max_comments:
+    description: "Maximum inline comments; the rest go into the summary."
+    required: false
+    default: "25"
+  skip_drafts:
+    description: "Skip draft pull requests."
+    required: false
+    default: "true"
+
+outputs:
+  comments:
+    description: "Number of inline comments posted."
+  critical:
+    description: "Number of critical findings."
+  verdict:
+    description: "comment or request_changes."
+  review_url:
+    description: "Link to the posted review."
+
+runs:
+  using: "node24"
+  main: "dist/action.js"

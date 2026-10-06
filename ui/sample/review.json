@@ -1,0 +1,113 @@
+{
+  "summary": "This PR adds order search, discount application, and an admin CSV export endpoint. The search endpoint concatenates user input directly into SQL (injection), the discount endpoint does not await the update or validate input, and the export logs the admin key to stdout.",
+  "verdict": "request_changes",
+  "comments": [
+    {
+      "path": "src/app.js",
+      "line": 22,
+      "severity": "critical",
+      "category": "security",
+      "title": "SQL injection via customer query param",
+      "body": "The customer value is interpolated straight into the SQL string, so `' OR '1'='1` (or worse) lets an attacker read/modify arbitrary data. Use a parameterized query like the other endpoint does.",
+      "suggestion": "const rows = await query(`SELECT * FROM orders WHERE customer = $1 ORDER BY id DESC`, [customer]);"
+    },
+    {
+      "path": "src/app.js",
+      "line": 31,
+      "severity": "critical",
+      "category": "bug",
+      "title": "Unguarded order access and unvalidated percent",
+      "body": "If no order matches the id, `order.total` throws a TypeError and the request crashes. Also `percent` is unvalidated: a string like 'abc' yields NaN total (data corruption), and negative or >100 values are accepted.",
+      "suggestion": "if (!order) return res.status(404).end();\nconst percent = Number(req.body.percent);\nif (!Number.isFinite(percent) || percent < 0 || percent > 100) return res.status(400).end();\nconst total = order.total - (order.total * percent) / 100;"
+    },
+    {
+      "path": "src/app.js",
+      "line": 38,
+      "severity": "critical",
+      "category": "security",
+      "title": "Admin API key written to logs",
+      "body": "Logging the x-api-key header leaks the secret into log aggregation/storage. Remove the log line, or log only that an export occurred.",
+      "suggestion": "console.log(\"Export requested\");"
+    },
+    {
+      "path": "src/app.js",
+      "line": 23,
+      "severity": "warning",
+      "category": "bug",
+      "title": "Pagination off-by-one skips the first page",
+      "body": "With PAGE_SIZE=10 and a 1-based `page` default of 1, start=10 skips the first 10 rows entirely; page=1 returns rows 10-19. Use (page-1)*PAGE_SIZE.",
+      "suggestion": "const start = (page - 1) * PAGE_SIZE;"
+    },
+    {
+      "path": "src/app.js",
+      "line": 32,
+      "severity": "warning",
+      "category": "bug",
+      "title": "Update not awaited",
+      "body": "`update(order.id, { total })` is not awaited, so the response may report a total that was never persisted / the write may fail silently. Await it and handle errors.",
+      "suggestion": "await update(order.id, { total });"
+    },
+    {
+      "path": "src/app.js",
+      "line": 39,
+      "severity": "warning",
+      "category": "security",
+      "title": "Non-constant-time admin key comparison",
+      "body": "Comparing the header with `!=` is not constant-time and returns early on first differing byte; use a timing-safe comparison (crypto.timingSafeEqual). Also ensure ADMIN_KEY is set, otherwise an undefined env value could match a sent request header."
+    },
+    {
+      "path": "src/app.js",
+      "line": 41,
+      "severity": "warning",
+      "category": "security",
+      "title": "Unescaped CSV export enables CSV injection",
+      "body": "Customer/other fields are written to CSV without escaping. A value starting with `=`, `+`, `-`, or `@` becomes a formula when opened in Excel, and commas/quotes/newlines break the column layout. Quote and escape fields (and consider prefixing formula-leading values)."
+    },
+    {
+      "path": "src/app.js",
+      "line": 40,
+      "severity": "info",
+      "category": "performance",
+      "title": "Export loads entire orders table into memory",
+      "body": "`SELECT * FROM orders` then mapping/joining builds the whole result set in memory; on a large table this can exhaust memory. Stream or paginate the export."
+    }
+  ],
+  "unplaced": [],
+  "tests": [
+    {
+      "path": "test/app.test.js",
+      "name": "GET /orders with a customer containing a quote/SQL fragment returns only matching rows",
+      "why": "Protects against SQL injection and confirms parameterization."
+    },
+    {
+      "path": "test/app.test.js",
+      "name": "GET /orders?page=1 and page=2 return disjoint, correctly-ordered pages",
+      "why": "Catches the off-by-one pagination bug."
+    },
+    {
+      "path": "test/app.test.js",
+      "name": "POST /orders/:id/discount with non-existent id returns 404",
+      "why": "Prevents the crash from dereferencing undefined."
+    },
+    {
+      "path": "test/app.test.js",
+      "name": "POST /orders/:id/discount with percent='abc', -5, or 500 returns 400 and does not write",
+      "why": "Protects against NaN/out-of-range totals corrupting data."
+    },
+    {
+      "path": "test/app.test.js",
+      "name": "GET /admin/export without/with wrong key returns 401 and never logs the key; CSV fields are escaped",
+      "why": "Protects the admin secret and CSV-injection safety."
+    }
+  ],
+  "stats": {
+    "files": 1,
+    "reviewedFiles": 1,
+    "skipped": [],
+    "truncated": false
+  },
+  "model": {
+    "provider": "deepseek",
+    "model": "deepseek-chat"
+  }
+}

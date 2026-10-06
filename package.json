@@ -1,23 +1,60 @@
 {
-  "name": "github-pr-reviewer-agent",
+  "name": "@codeitronics/ai-pr-reviewer",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "AI code review for pull requests: a GitHub Action, a CLI and a web UI. Inline comments on real diff lines, a summary, and the tests worth adding.",
+  "type": "module",
+  "bin": {
+    "ai-pr-reviewer": "bin/ai-pr-reviewer.js"
   },
-  "keywords": [],
-  "author": "Avnish Yadav",
-  "license": "ISC",
-  "description": "",
+  "files": [
+    "bin",
+    "dist/cli.js",
+    "ui",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "ui": "tsx src/cli.ts ui",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "github-action",
+    "code-review",
+    "pull-request",
+    "ai",
+    "llm",
+    "deepseek",
+    "openai",
+    "anthropic",
+    "gemini"
+  ],
+  "author": "Avnish Yadav (CodeITronics)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeitronics/ai-pr-reviewer.git"
+  },
+  "homepage": "https://codeitronics.com/products/pr-review-agent",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "commander": "^13.0.3",
+    "express": "^5.2.1",
+    "handlebars": "^4.7.8",
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
-    "@actions/core": "^2.0.1",
-    "@actions/github": "^6.0.1",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.3",
-    "jest": "^29.7.0",
-    "openai": "^6.15.0",
-    "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.1",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

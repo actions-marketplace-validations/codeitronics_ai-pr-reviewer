@@ -1,0 +1,6 @@
+<div class="comment {{severity}}">
+  <div class="comment-head"><span class="sev {{severity}}">{{upper severity}}</span><span class="cat">{{category}}</span><strong>{{title}}</strong></div>
+  <p>{{body}}</p>
+  {{#if suggestion}}<div class="suggestion"><span class="muted small">Suggested change</span><pre>{{suggestion}}</pre></div>{{/if}}
+  {{#if movedFrom}}<p class="muted small">The model pointed at line {{movedFrom}}; moved to the nearest changed line.</p>{{/if}}
+</div>

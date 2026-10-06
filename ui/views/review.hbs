@@ -1,0 +1,26 @@
+<div class="head"><div><p class="kicker">New review</p><h1>Paste a pull request or a diff.</h1></div></div>
+{{#if error}}<div class="error"><strong>Couldn't review that.</strong><pre>{{error}}</pre></div>{{/if}}
+<form method="post" action="{{root}}/review" class="review-form" data-busy>
+  <label>Pull request link <input type="text" name="target" value="{{target}}" placeholder="https://github.com/owner/repo/pull/123  or  owner/repo#123" autocomplete="off" spellcheck="false"></label>
+  <p class="or">or</p>
+  <label>Diff <textarea name="diff" rows="10" placeholder="git diff main... | pbcopy, then paste here" spellcheck="false">{{diff}}</textarea></label>
+  <fieldset class="sev">
+    <legend>Report</legend>
+    <label class="check"><input type="checkbox" name="sev_critical" checked> critical</label>
+    <label class="check"><input type="checkbox" name="sev_warning" checked> warning</label>
+    <label class="check"><input type="checkbox" name="sev_info" checked> info</label>
+    <label class="inline-select">Request changes on
+      <select name="requestChangesOn"><option value="never">never</option><option value="critical">critical</option><option value="warning">warning or worse</option></select>
+    </label>
+  </fieldset>
+  <div class="actions">
+    <button class="btn btn-primary" {{#unless ai}}disabled{{/unless}}>Review</button>
+    <span class="busy">Reviewing… usually 5–20 seconds</span>
+    <a class="btn btn-ghost" href="{{root}}/sample">See a sample review</a>
+  </div>
+</form>
+<p class="note">
+  {{#if ai}}AI: <strong>{{ai.provider}}</strong> ({{ai.model}}).{{else}}<span class="error-text">No AI key found: set DEEPSEEK_API_KEY (or ANTHROPIC_, OPENAI_, GEMINI_API_KEY) and restart.</span>{{/if}}
+  {{#if token}}GitHub token found: private repos work and you can post reviews.{{else}}No GITHUB_TOKEN: public pull requests only, and reviews can't be posted.{{/if}}
+  Only the diff is sent to the AI.
+</p>

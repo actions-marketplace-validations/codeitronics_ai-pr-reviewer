@@ -1,0 +1,11 @@
+# Public demo: the recorded review of the demo PR, plus live history of the demo repo. No AI calls.
+services:
+  pr-review-demo:
+    build: .
+    restart: unless-stopped
+    environment:
+      PR_REVIEWER_DEMO: "1"
+      ROOT_PATH: /pr-review
+      REVIEW_REPOS: codeitronics/ai-pr-reviewer-demo
+    ports:
+      - "127.0.0.1:8030:4600"

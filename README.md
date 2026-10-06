@@ -1,123 +1,112 @@
-# AI PR Reviewer Agent
+# AI PR Reviewer
 
-An automated GitHub Action that reviews Pull Requests using OpenAI's GPT models. It analyzes code changes for bugs, security vulnerabilities, and style issues, posting comments directly on the PR.
+AI code review on every pull request: comments on the exact changed lines, a short summary, and the tests worth adding. Works as a **GitHub Action**, a **CLI** and a **web UI**, with DeepSeek, Anthropic, OpenAI or Gemini.
 
-## Features
+![A review: summary, severity filters, and comments under the lines they refer to](docs/screenshots/01-review-summary.png)
 
-- **Automated Code Review**: Analyzes git diffs using OpenAI.
-- **Security Detection**: Highlights potential security flaws.
-- **Line-by-Line Comments**: Posts specific feedback on the relevant lines of code.
-- **Configurable**: Support for different OpenAI models and severity filters.
+**See it on a real pull request:** [codeitronics/ai-pr-reviewer-demo#1](https://github.com/codeitronics/ai-pr-reviewer-demo/pull/1) · **Try the web UI:** [demos.codeitronics.com/pr-review](https://demos.codeitronics.com/pr-review/)
 
-## Usage
+On that demo PR (an orders API with five deliberate mistakes), the reviewer flagged all five on the right lines: an injectable SQL query, an off-by-one in pagination, a missing `await`, an unvalidated discount on a possibly missing order, and an API key written to the logs. It also raised three real issues we hadn't planted, and suggested five tests.
 
-Add this action to your workflow file (e.g., `.github/workflows/review.yml`):
+## Use it as a GitHub Action
+
+1. Add your AI key as a repository secret, e.g. `DEEPSEEK_API_KEY` (**Settings → Secrets and variables → Actions**).
+2. Add `.github/workflows/ai-review.yml`:
 
 ```yaml
-name: AI PR Reviewer
-on: [pull_request]
+name: AI review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   review:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
-      - uses: actions/checkout@v2
-      - name: Run AI Reviewer
-        uses: ./ # Or use the published action name, e.g., avnishyadav25/github-pr-reviewer-agent@v1
+      - uses: codeitronics/ai-pr-reviewer@v1
         with:
-          openai_key: ${{ secrets.OPENAI_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          model: 'gpt-4o' # Optional, default is gpt-4o
+          api_key: ${{ secrets.DEEPSEEK_API_KEY }}
+          # provider: anthropic | openai | gemini   (default: deepseek)
+          # request_changes_on: critical            (default: never)
 ```
 
-## Inputs
+Every new push to the PR gets a fresh review. Draft PRs are skipped until they're ready.
 
-| Input | Description | Required | Default |
-|---|---|---|---|
-| `openai_key` | Your OpenAI API Key | Yes | - |
-| `github_token` | GitHub Token (usually `${{ secrets.GITHUB_TOKEN }}`) | Yes | - |
-| `model` | OpenAI Model to use | No | `gpt-4o` |
-| `include_severity` | Severities to include | No | `info,warning,critical` |
+| Input | Default | What it does |
+|---|---|---|
+| `api_key` | (required) | Key for the AI provider |
+| `provider` | `deepseek` | `deepseek`, `anthropic`, `openai` or `gemini` |
+| `model` | provider default | `deepseek-chat`, `claude-sonnet-5-5`, `gpt-5-mini`, `gemini-2.5-flash` |
+| `include_severity` | `info,warning,critical` | Which findings to post |
+| `request_changes_on` | `never` | Submit as "changes requested" at or above this severity |
+| `fail_on_critical` | `false` | Fail the workflow step on critical findings |
+| `ignore` | none | Extra globs to skip (lockfiles, `dist/`, minified and snapshot files are skipped already) |
+| `instructions_file` | `.github/ai-review.md` | Your team's review guidance, read from the PR's head commit |
+| `max_diff_chars` | `60000` | Diff budget; files beyond it are listed as skipped |
+| `max_comments` | `25` | Inline comment cap; the rest go into the summary |
+| `skip_drafts` | `true` | Skip draft PRs |
+
+Outputs: `comments`, `critical`, `verdict`, `review_url`.
+
+### How it keeps comments on the right lines
+
+GitHub rejects a whole review if a single comment points at a line outside the diff. So:
+
+1. The model sees the diff with explicit new-file line numbers.
+2. Every comment is checked against the lines GitHub will accept.
+3. A comment that's slightly off moves to the nearest changed line, within three lines, and says so.
+4. Anything still unplaceable goes into the summary.
+5. If GitHub still refuses the inline comments (for example after a force-push), the findings are posted as a summary review instead of being lost.
+
+## Use it from the terminal
+
+```bash
+export DEEPSEEK_API_KEY=...            # or ANTHROPIC_/OPENAI_/GEMINI_API_KEY
+npx @codeitronics/ai-pr-reviewer review https://github.com/owner/repo/pull/123
+npx @codeitronics/ai-pr-reviewer review owner/repo#123 --post        # post it (needs GITHUB_TOKEN)
+git diff main... | npx @codeitronics/ai-pr-reviewer review -        # any diff, before you push
+npx @codeitronics/ai-pr-reviewer review changes.patch --json
+```
+
+## Use the web UI
+
+```bash
+npx @codeitronics/ai-pr-reviewer ui    # http://127.0.0.1:4600
+```
+
+- **Review:** paste a PR link or a diff and see the comments inline, with severity filters and suggested fixes. With `GITHUB_TOKEN` set, you can review private repos and post the review.
+- **History:** every review the action has posted on the repositories you choose, read back from GitHub (each review carries a hidden marker), with totals for findings and blocked PRs.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/02-inline-comments.png" alt="Inline comments with suggested fixes"></td>
+    <td><img src="docs/screenshots/05-history.png" alt="Review history"></td>
+  </tr>
+</table>
+
+## What gets sent to the AI
+
+Only the diff of the files being reviewed (and your `instructions_file`, if present). Lockfiles, build output, binaries and anything in `ignore` are skipped. The model's reply is validated before anything is posted.
+
+AI review is a second pair of eyes, not a verdict: it can miss things and it can be wrong.
 
 ## Development
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Build the project:
-   ```bash
-   npm run build
-   ```
-
-## Architecture
-
-This agent is designed as a composite GitHub Action that acts as a bridge between your code and Large Language Models.
-
-```mermaid
-graph TD
-    A[Pull Request Event] -->|Triggers| B(GitHub Action)
-    B --> C{Get Context}
-    C -->|Fetch| D[PR Diff]
-    D -->|Send| E[OpenAI GPT-4o]
-    E -->|Analyze| F[Review Comments]
-    F -->|Post| G[GitHub Pull Request]
-```
-
-## How It Works
-
-1.  **Event Trigger**: The action listens for `pull_request` events.
-2.  **Diff Extraction**: It uses the GitHub API to fetch the changes (diff) made in the PR.
-3.  **AI Analysis**: The diff is sent to OpenAI with a strict system prompt instructing it to identify bugs, security flaws, and style issues, returning the results as structured JSON.
-4.  **Feedback Loop**: The agent parses the JSON response and posts review comments to the specific lines in the PR where issues were detected.
-
-## Design Decisions
-
--   **Node.js**: Chosen for its rich ecosystem of libraries (`octokit`, `openai`) and native support in GitHub Actions.
--   **Structured JSON Output**: We force the AI to return JSON to ensure we can programmatically map comments to exact file lines, preventing hallucinated or vague feedback.
--   **Security First**: The default prompt prioritizes security vulnerabilities to prevent critical issues from merging.
-
-## Testing
-
-### Automated Tests
-Run the unit test suite to verify the logic:
 ```bash
-npm test
+npm install
+npm test           # diff parsing, line placement, formats, GitHub posting + fallback, action run, UI
+npm run build      # dist/action.js (self-contained, committed for the Action) and dist/cli.js
+npm run ui
 ```
 
-### Manual Simulation
-You can simulate the reviewer locally without triggering a real GitHub Action:
-1.  Create a `.env` file with your keys:
-    ```env
-    OPENAI_API_KEY=sk-...
-    GITHUB_TOKEN=ghp-...
-    ```
-2.  Run the simulation script:
-    ```bash
-    npx ts-node simulate.ts
-    ```
+## License
 
-## Expected Result
+MIT. See [LICENSE](LICENSE).
 
-When the action detects an issue, it posts a comment directly on the PR line.
+---
 
-**Sample Comment:**
-
-> **[WARNING]** Potential Security Vulnerability
->
-> You are directly concatenating user input into a SQL query. This is susceptible to SQL Injection attacks.
->
-> **Suggestion:**
-> Use parameterized queries instead.
->
-> ```typescript
-> // Bad
-> const query = `SELECT * FROM users WHERE id = ${id}`;
->
-> // Good
-> const query = 'SELECT * FROM users WHERE id = ?';
-> await db.execute(query, [id]);
-> ```
+Built by [CodeITronics](https://codeitronics.com). We build AI agents and developer tooling.
