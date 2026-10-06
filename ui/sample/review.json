@@ -9,7 +9,7 @@
       "category": "security",
       "title": "SQL injection via customer query param",
       "body": "The customer value is interpolated directly into the SQL string, so any caller can inject arbitrary SQL (e.g. `' OR '1'='1` or a UNION to read other tables). Use a parameterized query instead.",
-      "suggestion": "const rows = await query(\"SELECT * FROM orders WHERE customer = $1 ORDER BY id DESC\", [customer]);"
+      "suggestion": "    const rows = await query(\"SELECT * FROM orders WHERE customer = $1 ORDER BY id DESC\", [customer]);"
     },
     {
       "path": "src/app.js",

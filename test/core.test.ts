@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { matches, parseDiff, render, selectFiles } from "../src/core/diff.js";
-import { finalize, reviewDiff } from "../src/core/review.js";
+import { finalize, reindent, reviewDiff } from "../src/core/review.js";
 import { commentBody, MARKER, summaryBody } from "../src/core/format.js";
 import { parseJSON, resolveAI } from "../src/core/llm.js";
 
@@ -82,6 +82,16 @@ describe("finalize", () => {
     const capped = finalize(many, files, stats, ai, { maxComments: 5 });
     assert.equal(capped.comments.length, 5);
     assert.ok(capped.unplaced.length >= 20);
+  });
+});
+
+describe("suggestions", () => {
+  it("keep the indentation of the line they replace", () => {
+    assert.equal(reindent("const x = 1;", "    const x = y;"), "    const x = 1;");
+    assert.equal(reindent("if (a) {\n  b();\n}", "\t\tif (a) b();"), "\t\tif (a) {\n\t\t  b();\n\t\t}");
+    const files = parseDiff(SAMPLE);
+    const r = finalize({ comments: [{ path: "src/app.js", line: 22, severity: "critical", category: "security", title: "SQLi", body: "b", suggestion: "const rows = await query(sql, [customer]);" }] }, files, { files: 1, reviewedFiles: 1, skipped: [], truncated: false }, { provider: "deepseek", model: "m" });
+    assert.equal(r.comments[0].suggestion, "    const rows = await query(sql, [customer]);");
   });
 });
 

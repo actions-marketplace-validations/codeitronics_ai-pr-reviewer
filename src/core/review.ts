@@ -137,6 +137,7 @@ export function finalize(raw: unknown, files: DiffFile[], stats: Review["stats"]
       c.line = placed;
       c.suggestion = undefined; // a suggestion written for another line would replace the wrong code
     }
+    if (c.suggestion && file) c.suggestion = reindent(c.suggestion, lineText(file, c.line));
     const key = `${c.path}:${c.line}:${c.title.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -163,6 +164,24 @@ export function finalize(raw: unknown, files: DiffFile[], stats: Review["stats"]
     stats,
     model: { provider: ai.provider, model: ai.model },
   };
+}
+
+function lineText(file: DiffFile, line: number): string | undefined {
+  for (const h of file.hunks) for (const l of h.lines) if (l.newLine === line && l.kind !== "del") return l.text;
+  return undefined;
+}
+
+/**
+ * Models usually return suggestion code without its original indentation, which GitHub would apply as-is.
+ * Shift the block so its least-indented line matches the indentation of the line being replaced.
+ */
+export function reindent(suggestion: string, original: string | undefined): string {
+  if (original === undefined) return suggestion;
+  const indent = /^\s*/.exec(original)![0];
+  const lines = suggestion.split("\n");
+  const min = Math.min(...lines.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)![0].length));
+  if (!Number.isFinite(min)) return suggestion;
+  return lines.map((l) => (l.trim() ? indent + l.slice(min) : l)).join("\n");
 }
 
 /** The model's line if GitHub will accept it, else the nearest added line within 3 lines, else undefined. */

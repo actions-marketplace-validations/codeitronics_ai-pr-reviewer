@@ -259,6 +259,7 @@ function finalize(raw, files, stats, ai, opts = {}) {
       c.line = placed;
       c.suggestion = void 0;
     }
+    if (c.suggestion && file) c.suggestion = reindent(c.suggestion, lineText(file, c.line));
     const key = `${c.path}:${c.line}:${c.title.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -280,6 +281,18 @@ function finalize(raw, files, stats, ai, opts = {}) {
     stats,
     model: { provider: ai.provider, model: ai.model }
   };
+}
+function lineText(file, line) {
+  for (const h of file.hunks) for (const l of h.lines) if (l.newLine === line && l.kind !== "del") return l.text;
+  return void 0;
+}
+function reindent(suggestion, original) {
+  if (original === void 0) return suggestion;
+  const indent = /^\s*/.exec(original)[0];
+  const lines = suggestion.split("\n");
+  const min = Math.min(...lines.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)[0].length));
+  if (!Number.isFinite(min)) return suggestion;
+  return lines.map((l) => l.trim() ? indent + l.slice(min) : l).join("\n");
 }
 function place(file, line) {
   if (file.commentable.has(line)) return line;
@@ -675,7 +688,7 @@ init_api();
 import fs2 from "node:fs/promises";
 import { Command, Option } from "commander";
 import pc2 from "picocolors";
-var VERSION = "1.0.2";
+var VERSION = "1.0.3";
 var ICON2 = { critical: pc2.red("\u25CF critical"), warning: pc2.yellow("\u25CF warning "), info: pc2.blue("\u25CF info    ") };
 async function run(argv) {
   const program = new Command().name("ai-pr-reviewer").description("AI code review for pull requests: CLI, GitHub Action and web UI.").version(VERSION);
