@@ -41,12 +41,12 @@ export async function completeJSON(ai: AI, system: string, user: string, { fetch
   if (ai.provider === "anthropic") {
     url = "https://api.anthropic.com/v1/messages";
     headers = { "x-api-key": ai.key, "anthropic-version": "2023-06-01" };
-    body = { model: ai.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] };
+    body = { model: ai.model, max_tokens: maxTokens, temperature: 0.2, system, messages: [{ role: "user", content: user }] };
     pick = (d) => d.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
   } else if (ai.provider === "gemini") {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(ai.model)}:generateContent`;
     headers = { "x-goog-api-key": ai.key };
-    body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { maxOutputTokens: maxTokens, responseMimeType: "application/json" } };
+    body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { maxOutputTokens: maxTokens, temperature: 0.2, responseMimeType: "application/json" } };
     pick = (d) => d.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("");
   } else {
     url = ai.provider === "deepseek" ? "https://api.deepseek.com/chat/completions" : "https://api.openai.com/v1/chat/completions";
@@ -55,7 +55,8 @@ export async function completeJSON(ai: AI, system: string, user: string, { fetch
       model: ai.model,
       messages: [{ role: "system", content: system }, { role: "user", content: user }],
       response_format: { type: "json_object" },
-      ...(ai.provider === "deepseek" ? { max_tokens: maxTokens } : { max_completion_tokens: maxTokens }),
+      // Low temperature for consistent severities; OpenAI's GPT-5 models only accept their default temperature.
+      ...(ai.provider === "deepseek" ? { max_tokens: maxTokens, temperature: 0.2 } : { max_completion_tokens: maxTokens }),
     };
     pick = (d) => d.choices?.[0]?.message?.content;
   }

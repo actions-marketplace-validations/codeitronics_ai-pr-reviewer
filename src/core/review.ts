@@ -60,8 +60,15 @@ Do not praise. Do not repeat the code back. If the change is fine, return no com
 Each line of the diff is prefixed with its marker (+ added, - removed, space context) and the NEW-file line number.
 Comment only on lines that have a new-file number, and prefer added (+) lines. Use exactly that number.
 
-Severity: critical = will break production, lose data or open a security hole; warning = likely bug or risky pattern;
-info = worth knowing, low risk.
+Severity, applied strictly:
+- critical: exploitable security issues (injection, auth bypass, secrets or credentials written to logs or responses,
+  missing authorization), data loss or corruption, or a crash on a normal request path.
+- warning: a likely bug or risky pattern that isn't immediately exploitable (missing await, missing null check on an
+  unusual path, unvalidated input with limited impact, race conditions, off-by-one errors).
+- info: worth knowing, low risk (performance on small data, minor robustness).
+When unsure between two levels, choose the higher one for security findings.
+
+The summary must attribute each problem to the right function, route or file. Do not mix up which code has which issue.
 
 Also suggest the most important missing tests for the changed behaviour (at most 5), naming the case and why it matters,
 in the project's existing test framework if one is visible.

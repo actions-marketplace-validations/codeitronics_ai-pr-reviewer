@@ -5,7 +5,7 @@ import { resolveAI } from "./core/llm.js";
 import { reviewDiff, SEVERITIES, type Review, type Severity } from "./core/review.js";
 import { GitHub, parsePrUrl } from "./github/api.js";
 
-const VERSION = "1.0.0";
+const VERSION = "1.0.1";
 const ICON: Record<Severity, string> = { critical: pc.red("● critical"), warning: pc.yellow("● warning "), info: pc.blue("● info    ") };
 
 export async function run(argv: string[]) {

@@ -1,6 +1,6 @@
 {
   "name": "@codeitronics/ai-pr-reviewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI code review for pull requests: a GitHub Action, a CLI and a web UI. Inline comments on real diff lines, a summary, and the tests worth adding.",
   "type": "module",
   "bin": {

@@ -36,12 +36,12 @@ async function completeJSON(ai, system, user, { fetchImpl = fetch, maxTokens = 6
   if (ai.provider === "anthropic") {
     url = "https://api.anthropic.com/v1/messages";
     headers = { "x-api-key": ai.key, "anthropic-version": "2023-06-01" };
-    body = { model: ai.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] };
+    body = { model: ai.model, max_tokens: maxTokens, temperature: 0.2, system, messages: [{ role: "user", content: user }] };
     pick = (d) => d.content?.filter((b) => b.type === "text").map((b) => b.text).join("");
   } else if (ai.provider === "gemini") {
     url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(ai.model)}:generateContent`;
     headers = { "x-goog-api-key": ai.key };
-    body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { maxOutputTokens: maxTokens, responseMimeType: "application/json" } };
+    body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { maxOutputTokens: maxTokens, temperature: 0.2, responseMimeType: "application/json" } };
     pick = (d) => d.candidates?.[0]?.content?.parts?.map((p) => p.text).join("");
   } else {
     url = ai.provider === "deepseek" ? "https://api.deepseek.com/chat/completions" : "https://api.openai.com/v1/chat/completions";
@@ -50,7 +50,8 @@ async function completeJSON(ai, system, user, { fetchImpl = fetch, maxTokens = 6
       model: ai.model,
       messages: [{ role: "system", content: system }, { role: "user", content: user }],
       response_format: { type: "json_object" },
-      ...ai.provider === "deepseek" ? { max_tokens: maxTokens } : { max_completion_tokens: maxTokens }
+      // Low temperature for consistent severities; OpenAI's GPT-5 models only accept their default temperature.
+      ...ai.provider === "deepseek" ? { max_tokens: maxTokens, temperature: 0.2 } : { max_completion_tokens: maxTokens }
     };
     pick = (d) => d.choices?.[0]?.message?.content;
   }
@@ -307,8 +308,15 @@ Do not praise. Do not repeat the code back. If the change is fine, return no com
 Each line of the diff is prefixed with its marker (+ added, - removed, space context) and the NEW-file line number.
 Comment only on lines that have a new-file number, and prefer added (+) lines. Use exactly that number.
 
-Severity: critical = will break production, lose data or open a security hole; warning = likely bug or risky pattern;
-info = worth knowing, low risk.
+Severity, applied strictly:
+- critical: exploitable security issues (injection, auth bypass, secrets or credentials written to logs or responses,
+  missing authorization), data loss or corruption, or a crash on a normal request path.
+- warning: a likely bug or risky pattern that isn't immediately exploitable (missing await, missing null check on an
+  unusual path, unvalidated input with limited impact, race conditions, off-by-one errors).
+- info: worth knowing, low risk (performance on small data, minor robustness).
+When unsure between two levels, choose the higher one for security findings.
+
+The summary must attribute each problem to the right function, route or file. Do not mix up which code has which issue.
 
 Also suggest the most important missing tests for the changed behaviour (at most 5), naming the case and why it matters,
 in the project's existing test framework if one is visible.
@@ -667,7 +675,7 @@ init_api();
 import fs2 from "node:fs/promises";
 import { Command, Option } from "commander";
 import pc2 from "picocolors";
-var VERSION = "1.0.0";
+var VERSION = "1.0.1";
 var ICON2 = { critical: pc2.red("\u25CF critical"), warning: pc2.yellow("\u25CF warning "), info: pc2.blue("\u25CF info    ") };
 async function run(argv) {
   const program = new Command().name("ai-pr-reviewer").description("AI code review for pull requests: CLI, GitHub Action and web UI.").version(VERSION);
